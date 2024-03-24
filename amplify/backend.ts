@@ -9,6 +9,7 @@ const convertFunction = defineFunction({
   entry: "./function/convert.ts",
   runtime: 20,
   timeoutSeconds: 600,
+  memoryMB: 1024,
 });
 
 const backend = defineBackend({
@@ -25,6 +26,11 @@ underlyingConvertLambda.addLayers(
     "imagemagick-lambda-layer",
     "arn:aws:lambda:us-west-2:566092841021:layer:imagemagick:1",
   ),
+  // lambda.LayerVersion.fromLayerVersionArn(
+  //   backend.convertFunction.resources.lambda.stack,
+  //   "ffmpeg-lambda-layer",
+  //   "arn:aws:lambda:us-east-1:145266761615:layer:ffmpeg:4",
+  // ),
 );
 
 underlyingConvertLambda.addEnvironment("BUCKET_NAME", bucket.bucketName);

@@ -12,5 +12,9 @@
       "$amplify/*": ["../.amplify/generated/*"]
     }
   },
-  "include": ["imagemagick-convert.d.ts"]
+  "include": [
+    "imagemagick-convert.d.ts",
+    "node-ebook-converter.d.ts",
+    "ebook-convert.d.ts"
+  ]
 }

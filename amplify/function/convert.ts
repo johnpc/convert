@@ -1,10 +1,61 @@
+import { readFile, writeFile } from "fs/promises";
 import { Context } from "aws-lambda";
 import { convert } from "imagemagick-convert";
 import { getUrl, downloadData, uploadData } from "aws-amplify/storage";
 import { Amplify } from "aws-amplify";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { convert as ebookConvert } from "node-ebook-converter";
 import config from "../../amplifyconfiguration.json";
+import { getConvertTool, isConversionValid } from "./helpers/formats";
+import C from "ebook-convert";
+
+import path from "path";
 Amplify.configure(config);
+
+const convertEbook = async (
+  fileKey: string,
+  desiredFormat: string,
+  fileBuffer: ArrayBuffer,
+): Promise<Buffer> => {
+  const tmpInputFile = path.join("/tmp", fileKey);
+  const tmpOutputFile = path.join("/tmp", `${fileKey}.${desiredFormat}`);
+  await writeFile(tmpInputFile, Buffer.from(fileBuffer));
+  // await ebookConvert({
+  //   input: tmpInputFile,
+  //   output: tmpOutputFile,
+  // });
+  await new Promise<void>((resolve) => {
+    C(
+      {
+        input: tmpInputFile,
+        output: tmpOutputFile,
+      },
+      (err: Error) => {
+        console.error(err);
+        resolve();
+      },
+    );
+  });
+  return await readFile(tmpOutputFile);
+};
+
+const convertFile = async (
+  fileKey: string,
+  desiredFormat: string,
+  fileBuffer: ArrayBuffer,
+): Promise<Buffer> => {
+  const convertTool = getConvertTool(fileKey);
+  switch (convertTool) {
+    case "imagemagick":
+      return await convert({
+        fileBuffer,
+        format: desiredFormat,
+      });
+    case "ebook-convert":
+      return await convertEbook(fileKey, desiredFormat, fileBuffer);
+    default:
+      throw new Error(`Unable to find convert tool for ${fileKey}`);
+  }
+};
 
 const getConvertedUrl = async (fileKey: string, desiredFormat: string) => {
   const { body } = await downloadData({
@@ -16,14 +67,11 @@ const getConvertedUrl = async (fileKey: string, desiredFormat: string) => {
   const blob = await body.blob();
   const arrayBuffer = await blob.arrayBuffer();
   const srcData = Buffer.from(arrayBuffer);
-  const imgBuffer = await convert({
-    srcData,
-    format: desiredFormat,
-  });
+  const convertedBuffer = await convertFile(fileKey, desiredFormat, srcData);
 
   await uploadData({
     key: `${fileKey}.${desiredFormat}`,
-    data: imgBuffer,
+    data: convertedBuffer,
     options: {
       accessLevel: "guest",
     },
@@ -59,6 +107,11 @@ export const handler = async (
           null,
           2,
         )}`,
+      );
+    }
+    if (!isConversionValid(fileKey, desiredFormat)) {
+      throw new Error(
+        `Conversion for ${fileKey} to ${desiredFormat} is not supported.`,
       );
     }
 

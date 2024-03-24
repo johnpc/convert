@@ -7,8 +7,7 @@ import {
   SelectField,
 } from "@aws-amplify/ui-react";
 import { useState } from "react";
-
-const formatOptions = ["png", "jpg", "gif", "ico"];
+import { parseFileFormat, getFormatOptions } from "../../../amplify/function/helpers/formats";
 
 export default function ConvertFile(props: {
   fileKey: string;
@@ -17,7 +16,9 @@ export default function ConvertFile(props: {
 }) {
   const { fileKey, convertFailed, handleClick } = props;
   const [convertInProgress, setConvertInProgress] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState(formatOptions[0]);
+  const formatOptions = getFormatOptions(parseFileFormat(fileKey));
+  const [selectedFormat, setSelectedFormat] = useState(formatOptions?.[0]);
+
   const clickHandler = async () => {
     setConvertInProgress(true);
     await handleClick(selectedFormat);
@@ -38,12 +39,15 @@ export default function ConvertFile(props: {
       >
         <Heading level={6}>Uploaded file {fileKey}</Heading>
         <SelectField label="desired format" onChange={handleSelectChange}>
-          {formatOptions.map((option) => (
+          {formatOptions.length ? formatOptions.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
-          ))}
+          )) : <option key={'error'} value={'error'}>
+          No conversions available for .{fileExtension}
+        </option>}
         </SelectField>
+        {formatOptions.length ?
         <Button
           variation="primary"
           colorTheme={convertFailed ? "error" : undefined}
@@ -56,7 +60,7 @@ export default function ConvertFile(props: {
           ) : (
             "Convert!"
           )}
-        </Button>
+        </Button> : ''}
       </Grid>
     </Card>
   );

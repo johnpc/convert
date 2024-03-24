@@ -26,7 +26,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "imagemagick-convert.d.ts"
+    "imagemagick-convert.d.ts",
+    "node-ebook-converter.d.ts"
   ],
   "exclude": ["node_modules"]
 }
