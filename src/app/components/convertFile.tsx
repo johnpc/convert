@@ -44,7 +44,7 @@ export default function ConvertFile(props: {
               {option}
             </option>
           )) : <option key={'error'} value={'error'}>
-          No conversions available for .{fileExtension}
+          No conversions available for {fileKey}
         </option>}
         </SelectField>
         {formatOptions.length ?
